@@ -2,8 +2,7 @@ import sys
 
 from flask import Flask
 from flask_restful import abort, Api
-from resources.translate import Translator
-
+from resources.diagnostic import Diagnostic
 app = Flask(__name__)
 api = Api(app)
 

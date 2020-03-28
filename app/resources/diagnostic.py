@@ -11,6 +11,7 @@ parser = reqparse.RequestParser()
 parser.add_argument('query')
 
 class Diagnostic(Resource):
+    
     def post(self):
         """ Receives a json containing _id, and a string
             saves in a database.
@@ -32,7 +33,7 @@ class Diagnostic(Resource):
             return {'status': 200}
         else:
             return {'status':400}
-
+   
     def get(self):
         """ Receives a json containing _id, and returns user
             information.
@@ -41,6 +42,7 @@ class Diagnostic(Resource):
         parser.add_argument('id', required=True, help="Name cannot be blank!")
         args  = parser.parse_args()
         patient_id = args['id']
+
         score =  db.get_patient_id(patient_id)
 
         if score:
