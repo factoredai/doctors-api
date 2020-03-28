@@ -5,7 +5,7 @@ import sys
 #from evaluate import Eval
 sys.path.insert(0, '../')
 print(sys.path)
-from evaluate import Eval
+from database import db_handler as db
 
 parser = reqparse.RequestParser()
 parser.add_argument('query')
@@ -19,8 +19,10 @@ class Diagnostic(Resource):
             return BAD_REQUEST HTTP 400 if bad JSON
         """
 
+        db.post_patient_id(#put args)
 
     def get(self):
         """ Receives a json containing _id, and returns user
             information.
         """
+        db.get_patient_id(#puyt args)
