@@ -25,4 +25,16 @@ class Diagnostic(Resource):
         """ Receives a json containing _id, and returns user
             information.
         """
-        db.get_patient_id(#puyt args)
+        
+        parser.add_argument('id', required=True, help="Name cannot be blank!")
+        args  = parser.parse_args()
+        patient_id = args['id']
+        score =  db.get_patient_id(patient_id)
+
+        if score:
+            return {'patient_id': patient_id, 'diagnostic': score}
+        else:
+            return {'status':400}
+       
+
+
