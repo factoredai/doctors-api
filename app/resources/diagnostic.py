@@ -28,7 +28,10 @@ class Diagnostic(Resource):
         _id = args['_id']
         diagnose = args['diagnose']
         response = db.post_patient_id(_id, diagnose)
-        return response
+        if response:
+            return {'status': 200}
+        else:
+            return {'status':400}
 
     def get(self):
         """ Receives a json containing _id, and returns user
