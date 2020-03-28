@@ -1,5 +1,5 @@
 from flask_restful import reqparse, Resource
-
+import json
 import sys
 
 #from evaluate import Eval
@@ -18,8 +18,17 @@ class Diagnostic(Resource):
             returns OK HTTP 200
             return BAD_REQUEST HTTP 400 if bad JSON
         """
-
-        db.post_patient_id(#put args)
+        parser = reqparse.RequestParser()
+        try:
+            parser.add_argument('_id', type=int, required=True, help='ID of patient. (Required)')
+            parser.add_argument('diagnose', type=str, required=True, help='Diagnose of the patient')
+        except:
+            return {'status':400}
+        args = parser.parse_args()
+        _id = args['_id']
+        diagnose = args['diagnose']
+        response = db.post_patient_id(_id, diagnose)
+        return response
 
     def get(self):
         """ Receives a json containing _id, and returns user
