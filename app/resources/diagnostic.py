@@ -1,4 +1,6 @@
-from flask_restful import reqparse, Resource
+from flask import Flask
+from flask_restful import abort, Api
+from resources.diagnostic import Diagnostic
 import json
 import sys
 
