@@ -1,12 +1,9 @@
-import sys
 import os
 
 from flask import Flask, make_response, jsonify
 from flask_restful import abort, Api
-from flask_pymongo import PyMongo
 from flask_restful import reqparse, Resource
 from dotenv import load_dotenv
-import json
 
 from database.db_setup import get_connection
 from database.db_queries import post_patient_id, get_patient_id
