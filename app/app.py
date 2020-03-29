@@ -22,8 +22,10 @@ db = db_client[DB_NAME]
 parser = reqparse.RequestParser()
 parser.add_argument('query')
 
+
 def custom_error(message, status_code):
     return make_response(jsonify(message), status_code)
+
 
 class Diagnostic(Resource):
 
@@ -40,7 +42,7 @@ class Diagnostic(Resource):
             parser.add_argument('diagnose', type=str, required=True, help='Diagnose of the patient')
             parser.add_argument('med_id', type=str, required=True, help='ID of the doctor')
         except:
-            return {'status':400}
+            return {'status': 400}
         patient_info = parser.parse_args()
 
         response = post_patient_id(patient_info, db)
@@ -48,7 +50,7 @@ class Diagnostic(Resource):
         if response:
             return {'status': 200}
         else:
-            return {'status':400}
+            return {'status': 400}
 
     def get(self):
         """ Receives a json containing _id, and returns user
@@ -56,15 +58,27 @@ class Diagnostic(Resource):
         """
 
         parser.add_argument('id', required=True, help="Name cannot be blank!")
-        args  = parser.parse_args()
+        args = parser.parse_args()
         patient_id = args['id']
 
-        patient_info =  get_patient_id(patient_id, db)
+        patient_info = get_patient_id(patient_id, db)
         print(patient_info)
 
         return patient_info if patient_info else custom_error("diagnostic not found", 404)
 
+
+class HealtCheck(Resource):
+    @property
+    def get(self):
+        try:
+            info = db_client.server_info()
+            return "Db OK"
+        except Exception:
+            return "DB error"
+
+
 # Setup the Api resource routing here
 # Route the URL to the resource
 api.add_resource(Diagnostic, '/diagnostic')
+api.add_resource(HealtCheck, '/')
 
