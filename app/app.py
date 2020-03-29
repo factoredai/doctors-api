@@ -67,8 +67,7 @@ class Diagnostic(Resource):
         return patient_info if patient_info else custom_error("diagnostic not found", 404)
 
 
-class HealtCheck(Resource):
-    @property
+class HealthCheck(Resource):
     def get(self):
         try:
             info = db_client.server_info()
@@ -80,5 +79,5 @@ class HealtCheck(Resource):
 # Setup the Api resource routing here
 # Route the URL to the resource
 api.add_resource(Diagnostic, '/diagnostic')
-api.add_resource(HealtCheck, '/')
+api.add_resource(HealthCheck, '/')
 
