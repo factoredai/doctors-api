@@ -68,4 +68,3 @@ class Diagnostic(Resource):
 # Route the URL to the resource
 api.add_resource(Diagnostic, '/diagnostic')
 
-
