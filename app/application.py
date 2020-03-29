@@ -11,6 +11,7 @@ from app.database.db_queries import post_patient_id, get_patient_id
 load_dotenv()
 
 app = Flask(__name__)
+application = app # For beanstalk
 api = Api(app)
 
 MONGO_URI = os.getenv('MONGO_URI')
