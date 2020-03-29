@@ -5,8 +5,8 @@ from flask_restful import abort, Api
 from flask_restful import reqparse, Resource
 from dotenv import load_dotenv
 
-from database.db_setup import get_connection
-from database.db_queries import post_patient_id, get_patient_id
+from app.database.db_setup import get_connection
+from app.database.db_queries import post_patient_id, get_patient_id
 
 load_dotenv()
 
@@ -68,6 +68,3 @@ class Diagnostic(Resource):
 # Route the URL to the resource
 api.add_resource(Diagnostic, '/diagnostic')
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
