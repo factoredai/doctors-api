@@ -39,8 +39,9 @@ class Diagnostic(Resource):
         """
         parser = reqparse.RequestParser()
         try:
-            parser.add_argument('_id', type=str, required=True, help='ID of patient. (Required)')
+            parser.add_argument('document', type=str, required=True, help='ID of patient. (Required)')
             parser.add_argument('diagnose', type=str, required=True, help='Diagnose of the patient')
+            parser.add_argument('med_id', type=str, required=True, help='ID of the doctor')
         except:
             return {'status':400}
         patient_info = parser.parse_args()
@@ -62,6 +63,7 @@ class Diagnostic(Resource):
         patient_id = args['id']
 
         patient_info =  get_patient_id(patient_id, db)
+        print(patient_info)
 
         return patient_info if patient_info else custom_error("diagnostic not found", 404)
 
