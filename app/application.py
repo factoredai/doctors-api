@@ -79,5 +79,5 @@ class HealthCheck(Resource):
 # Setup the Api resource routing here
 # Route the URL to the resource
 api.add_resource(Diagnostic, '/diagnostic')
-api.add_resource(HealthCheck, '/')
+api.add_resource(HealthCheck, '/health-check')
 
