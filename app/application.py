@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from app.database.db_setup import get_connection
 from app.database.db_queries import post_patient_id, get_patient_id
-from app.helpers.auth import AuthHandler
+from app.helpers.auth import AuthHandler, AuthError
 
 load_dotenv()
 
@@ -43,7 +43,9 @@ class Diagnostic(Resource):
             return BAD_REQUEST HTTP 400 if bad JSON
         """
         parser = reqparse.RequestParser()
-        payload = auth_handler.get_payload(request)
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
 
         try:
             parser.add_argument('patient_id', type=str, required=True, help='ID of patient. (Required)')
@@ -66,10 +68,15 @@ class Diagnostic(Resource):
         """ Receives a json containing _id, and returns user
             information.
         """
+        parser = reqparse.RequestParser()
+
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
 
         parser.add_argument('patient_id', required=True, help="Id of the patient required")
         args = parser.parse_args()
-        patient_id = args['id']
+        patient_id = args['patient_id']
 
         patient_info = get_patient_id(patient_id, db)
 
