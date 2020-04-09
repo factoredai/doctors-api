@@ -3,9 +3,10 @@ def get_patient_id(patient_id, db):
     """gets a patient by id"""
     patient_info = db['diagnostic'].find({
         'document': patient_id}, {
-            'document': 1,
-            'med_id': 1 ,
+            'patient_id': 1,
+            'doctor_id': 1 ,
             'diagnose': 1,
+            'report_id': 1,
             '_id': 0
         })
     return list(patient_info)
