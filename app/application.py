@@ -52,6 +52,7 @@ class Diagnostic(Resource):
             parser.add_argument('diagnose', type=str, required=True, help='Diagnose of the patient')
             parser.add_argument('doctor_id', type=str, required=True, help='ID of the doctor')
             parser.add_argument('report_id', type=str, required=True, help='ID of the report')
+            parser.add_argument('conduct', type=str, required=True, help='Recommendation for the patient')
         except:
             return {'status': 400}
         patient_info = parser.parse_args()
@@ -74,13 +75,21 @@ class Diagnostic(Resource):
         if isinstance(token_valid, AuthError):
             return custom_response(token_valid.error, token_valid.status_code)
 
-        parser.add_argument('patient_id', required=True, help="Id of the patient required")
         args = parser.parse_args()
-        patient_id = args['patient_id']
 
-        patient_info = get_patient_id(patient_id, db)
+        if 'patient_id' not in args or 'doctor_id' not in args:
+            return custom_response({
+                "code": "missing parameter",
+                "description": "patient id required"}, 400)
 
-        return patient_info if patient_info else custom_response("diagnostic not found", 404)
+        patient_id = args['patient_id'] if 'patient_id' inf args else None
+        doctor_id = args['doctor_id'] if 'patient_id' inf args else None
+
+        patient_info = get_patient_id(db, patient_id=patient_id, doctor_id=doctor_id)
+
+        return patient_info if patient_info else custom_response({
+            "code": "diagnoses non existent",
+            "description": "diagnoses non existent for that parameters"}, 404)
 
 
 class HealthCheck(Resource):
