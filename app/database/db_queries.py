@@ -15,6 +15,7 @@ def get_patient_id(db, patient_id=None, doctor_id=None):
             'diagnose': 1,
             'report_id': 1,
             '_diagnostic_date': 1,
+            'conduct': 1,
             '_id': 0
         }).sort([("_diagnostic_date", pymongo.DESCENDING),
                  ("patient_id", pymongo.DESCENDING)])
@@ -24,7 +25,7 @@ def post_patient_id(patient_info, db):
     """creates a new patient  with patient info or updates
        if the patient already exists.
     """
-    patient_info['_diagnostic_date'] = dt.datetime.now()
+    patient_info['_diagnostic_date'] = dt.datetime.utcnow()
     inserted = db['diagnostic'].insert_one(patient_info)
 
-    return inserted.acknowledged
+    return inserted.acknowledged, patient_info['_diagnostic_date']

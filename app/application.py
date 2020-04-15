@@ -17,9 +17,9 @@ api = Api(app)
 # Environment Variables
 MONGO_URI = os.getenv('MONGO_URI')
 DB_NAME = os.getenv('DB_NAME')
-AUTH0_DOMAIN = '5vid-dev.auth0.com'
-API_AUDIENCE = 'api-dev.5vid.co'
-ALGORITHMS = ["RS256"]
+AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
+API_AUDIENCE = os.getenv('API_AUDIENCE')
+ALGORITHMS = os.getenv('ALGORITHMS')
 
 # Manage Database Connection
 db_client = get_connection(mongo_uri=MONGO_URI)
@@ -47,22 +47,25 @@ class Diagnostic(Resource):
         if isinstance(token_valid, AuthError):
             return custom_response(token_valid.error, token_valid.status_code)
 
-        try:
-            parser.add_argument('patient_id', type=str, required=True, help='ID of patient. (Required)')
-            parser.add_argument('diagnose', type=str, required=True, help='Diagnose of the patient')
-            parser.add_argument('doctor_id', type=str, required=True, help='ID of the doctor')
-            parser.add_argument('report_id', type=str, required=True, help='ID of the report')
-            parser.add_argument('conduct', type=str, required=True, help='Recommendation for the patient')
-        except:
-            return {'status': 400}
+        parser.add_argument('patient_id', type=str, required=True, help='ID of patient. (Required)')
+        parser.add_argument('diagnose', type=str, required=True, help='Diagnose of the patient')
+        parser.add_argument('doctor_id', type=str, required=True, help='ID of the doctor')
+        parser.add_argument('report_id', type=str, required=True, help='ID of the report')
+        parser.add_argument('conduct', type=str, required=True, help='Recommendation for the patient required')
+
         patient_info = parser.parse_args()
 
         response = post_patient_id(patient_info, db)
 
         if response:
-            return {'status': 200}
+            return custom_response({
+                "code": "Diagnostic Created",
+                "Message": "Diagnostico creado"
+            }, 201)
         else:
-            return {'status': 400}
+            return custom_response({
+                "code": "Insertion incompplete",
+                "message": "Diagnostico no se puedo ingresar contacte administrador"}, 202)
 
     @cross_origin(headers=["Content-Type", "Authorization"])
     def get(self):
@@ -75,21 +78,22 @@ class Diagnostic(Resource):
         if isinstance(token_valid, AuthError):
             return custom_response(token_valid.error, token_valid.status_code)
 
-        args = parser.parse_args()
+        args = request.args.to_dict()
 
-        if 'patient_id' not in args or 'doctor_id' not in args:
+        if 'patient_id' not in args and 'doctor_id' not in args:
             return custom_response({
                 "code": "missing parameter",
-                "description": "patient id required"}, 400)
+                "description": "patient or doctor id required"}, 400)
 
-        patient_id = args['patient_id'] if 'patient_id' inf args else None
-        doctor_id = args['doctor_id'] if 'patient_id' inf args else None
+        patient_id = (args['patient_id'] if 'patient_id' in args else None)
+        doctor_id = (args['doctor_id'] if 'doctor_id' in args else None)
 
         patient_info = get_patient_id(db, patient_id=patient_id, doctor_id=doctor_id)
 
-        return patient_info if patient_info else custom_response({
+        return custom_response(patient_info, 200) if patient_info else custom_response({
             "code": "diagnoses non existent",
             "description": "diagnoses non existent for that parameters"}, 404)
+
 
 
 class HealthCheck(Resource):
