@@ -1,6 +1,7 @@
 import datetime as dt
 import pymongo
 
+
 def get_patient_id(db, patient_id=None, doctor_id=None):
     """gets a patient by id"""
     query = {}
