@@ -63,13 +63,19 @@ class Diagnostic(Resource):
 
         if response:
             return custom_response({
-                "code": "Diagnostic Created",
-                "Message": "Diagnostico creado"
+                "code": "diagnostic created",
+                "message": {
+                    "esp": "diagnostico creado",
+                    "eng": "diagnostic created"
+                }
             }, 201)
         else:
             return custom_response({
-                "code": "Insertion incompplete",
-                "message": "Diagnostico no se puedo ingresar contacte administrador"}, 202)
+                "code": "insertion incompplete",
+                "message": {
+                    "esp": "diagnostico no se puedo ingresar contacte administrador",
+                    "eng": "diagnostic couldn't be created, contact admin"
+                }}, 202)
 
     @cross_origin(headers=["Content-Type", "Authorization"])
     def get(self):
@@ -87,16 +93,23 @@ class Diagnostic(Resource):
         if 'patient_id' not in args and 'doctor_id' not in args:
             return custom_response({
                 "code": "missing parameter",
-                "description": "patient or doctor id required"}, 400)
+                "message": {
+                    "eng": "patient or doctor id required",
+                    "esp": "identificacion del doctor o del paciente requeridos"
+                }}, 400)
 
         patient_id = (args['patient_id'] if 'patient_id' in args else None)
         doctor_id = (args['doctor_id'] if 'doctor_id' in args else None)
 
         patient_info = get_patient_id(db, patient_id=patient_id, doctor_id=doctor_id)
 
-        return custom_response(patient_info, 200) if patient_info else custom_response({
-            "code": "diagnoses non existent",
-            "description": "diagnoses non existent for that parameters"}, 404)
+        return custom_response({"code": "diagnostics found", "message": patient_info},
+                               200) if patient_info else custom_response({
+                               "code": "diagnoses non existent",
+                               "message": {
+                                    "eng": "diagnoses non existent for those parameters",
+                                    "esp": "diagnostico no existente para esos parametros de busqueda"
+                               }}, 404)
 
 
 class Appointment(Resource):
@@ -125,16 +138,20 @@ class Appointment(Resource):
 
         if ack:
             return custom_response({
-                "code": "appointment Created",
-                "Message":{
+                "code": "appointment created",
+                "message":{
                     "creation_date" : creation_date,
                     "videocall_code" : videocall_code
                 }
             }, 201)
         else:
             return custom_response({
-                "code": "Insertion incomplete",
-                "message": "Cita no se pudo crear contacte administrador"}, 202)
+                "code": "insertion incomplete",
+                "message": {
+                    "esp": "cita no se pudo crear contacte administrador",
+                    "eng": "appointment couldn't be created contact admin"
+                }
+                }, 202)
 
     @cross_origin(headers=["Content-Type", "Authorization"])
     def get(self):
@@ -150,16 +167,23 @@ class Appointment(Resource):
         if 'patient_id' not in args and 'doctor_id' not in args:
             return custom_response({
                 "code": "missing parameter",
-                "description": "patient or doctor id required"}, 400)
+                "message": {
+                    "esp": "para consultar citas debe ingresar id de paciente o doctor",
+                    "eng": "to get appointments you must pprovide doctor's id or patient's"
+                }}, 400)
 
         patient_id = (args['patient_id'] if 'patient_id' in args else None)
         doctor_id = (args['doctor_id'] if 'doctor_id' in args else None)
 
         appointment_info = get_appointment(db, patient_id=patient_id, doctor_id=doctor_id)
 
-        return custom_response(appointment_info, 200) if appointment_info else custom_response({
-            "code": "appointments non existent",
-            "description": "citas no existen para ese paciente o doctor"}, 404)
+        return custom_response({"code": "appointments found", "message": appointment_info},
+                               200) if appointment_info else custom_response({
+                               "code": "appointments non existent",
+                               "message": {
+                                    "esp": "citas no encontradas",
+                                    "eng": "appointments not found"
+                               }}, 404)
 
 
     @cross_origin(headers=["Content-Type", "Authorization"])
@@ -176,7 +200,10 @@ class Appointment(Resource):
         if 'informed_consent_accepted' not in body or 'videocall_code' not in body:
             return custom_response({
                 "code": "missing parameter",
-                "description": "consent and video call code required"}, 400)
+                "message": {
+                    "eng": "consent and video call code required",
+                    "esp": "consentimiento y video llamada requerida"
+                }}, 400)
 
         n_matched, modified = modify_appointment(db, videocall_code=body['videocall_code'],
                                       consent=body['informed_consent_accepted'])
@@ -184,13 +211,18 @@ class Appointment(Resource):
         if modified:
             return custom_response({
                 "code": "appointment modified",
-                "Message": "consentimiento actualizado"
+                "message": {
+                    "esp": "consentimiento actualizado",
+                    "eng": "consent updated"
+                }
             }, 200)
         else:
             return custom_response({
                 "code": "appointment not found" if not n_matched else "videocall already consented",
-                "message": "Cita no encontrada" if not n_matched else "videollamada con consetimiento ya aprobado"},
-                404 if not n_matched else 202)
+                "message": {
+                    "esp": "cita no encontrada" if not n_matched else "videollamada con consetimiento ya aprobado",
+                    "eng": "appointment not found" if not n_matched else "videocall with consent already approved"
+                }}, 404 if not n_matched else 202)
 
 
 class HealthCheck(Resource):
