@@ -4,36 +4,6 @@ import random
 import string
 
 
-def get_patient_id(db, patient_id=None, doctor_id=None):
-    """gets a patient by id"""
-    query = {}
-    if patient_id:
-        query['patient_id'] = patient_id
-    if doctor_id:
-        query['doctor_id'] = doctor_id
-
-    patient_info = db['diagnostic'].find(query, {
-            'patient_id': 1,
-            'doctor_id': 1 ,
-            'diagnose': 1,
-            'report_id': 1,
-            '_diagnostic_date': 1,
-            'conduct': 1,
-            '_id': 0
-        }).sort([("_diagnostic_date", pymongo.DESCENDING),
-                 ("patient_id", pymongo.DESCENDING)])
-    return list(patient_info)
-
-def post_patient_id(patient_info, db):
-    """creates a new patient  with patient info or updates
-       if the patient already exists.
-    """
-    patient_info['_diagnostic_date'] = dt.datetime.utcnow()
-    inserted = db['diagnostic'].insert_one(patient_info)
-
-    return inserted.acknowledged, patient_info['_diagnostic_date']
-
-
 def post_appointment(db, appointment_info, videocall_code_size):
     """ Creates an apointment with user info and consent in false if is not
         present in appointment_info
@@ -72,3 +42,22 @@ def modify_appointment(db, consent, videocall_code):
     )
 
     return result['n'], result['nModified']
+
+def get_appointment(db, patient_id=None, doctor_id=None):
+    """gets a patient by id"""
+    query = {}
+    if patient_id:
+        query['patient_id'] = patient_id
+    if doctor_id:
+        query['doctor_id'] = doctor_id
+
+    appointment_info = db['appointment'].find(query, {
+            'patient_id': 1,
+            'doctor_id': 1 ,
+            'videocall_code': 1,
+            'informed_consent_accepted': 1,
+            '_appointment_creation_date': 1,
+            '_id': 0
+        }).sort([("_appointment_creation_date", pymongo.DESCENDING),
+                 ("patient_id", pymongo.DESCENDING)])
+    return list(appointment_info)

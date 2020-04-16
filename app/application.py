@@ -6,8 +6,10 @@ from flask_cors import cross_origin
 from dotenv import load_dotenv
 
 from app.database.db_setup import get_connection
-from app.database.db_queries import (
-    post_patient_id, get_patient_id, post_appointment, modify_appointment)
+from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
+from app.database.db_queries_appointment import (post_appointment,
+                                                 modify_appointment,
+                                                 get_appointment)
 from app.helpers.auth import AuthHandler, AuthError
 
 load_dotenv()
@@ -134,10 +136,32 @@ class Appointment(Resource):
                 "code": "Insertion incomplete",
                 "message": "Cita no se pudo crear contacte administrador"}, 202)
 
-    # @cross_origin(headers=["Content-Type", "Authorization"])
-    # def get(self):
-    #     return NotImplementedError
-    #
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def get(self):
+        """ Get appointment information by doctor_id, patient_id or both.
+        """
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        args = request.args.to_dict()
+
+        if 'patient_id' not in args and 'doctor_id' not in args:
+            return custom_response({
+                "code": "missing parameter",
+                "description": "patient or doctor id required"}, 400)
+
+        patient_id = (args['patient_id'] if 'patient_id' in args else None)
+        doctor_id = (args['doctor_id'] if 'doctor_id' in args else None)
+
+        appointment_info = get_appointment(db, patient_id=patient_id, doctor_id=doctor_id)
+
+        return custom_response(appointment_info, 200) if appointment_info else custom_response({
+            "code": "appointments non existent",
+            "description": "citas no existen para ese paciente o doctor"}, 404)
+
+
     @cross_origin(headers=["Content-Type", "Authorization"])
     def patch(self):
         """ Modifies one or several fields of an appointment
