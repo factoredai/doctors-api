@@ -6,7 +6,8 @@ from flask_cors import cross_origin
 from dotenv import load_dotenv
 
 from app.database.db_setup import get_connection
-from app.database.db_queries import post_patient_id, get_patient_id
+from app.database.db_queries import (
+    post_patient_id, get_patient_id, post_appointment, modify_appointment)
 from app.helpers.auth import AuthHandler, AuthError
 
 load_dotenv()
@@ -20,6 +21,7 @@ DB_NAME = os.getenv('DB_NAME')
 AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
 API_AUDIENCE = os.getenv('API_AUDIENCE')
 ALGORITHMS = os.getenv('ALGORITHMS')
+VIDEOCALL_CODE_SIZE = int(os.getenv('VIDEOCALL_CODE_SIZE'))
 
 # Manage Database Connection
 db_client = get_connection(mongo_uri=MONGO_URI)
@@ -95,6 +97,77 @@ class Diagnostic(Resource):
             "description": "diagnoses non existent for that parameters"}, 404)
 
 
+class Appointment(Resource):
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def post(self):
+        """ Receives appointment information
+            doctor_id, patient_id, videocall_code, informed_consent_accepted
+        """
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        parser.add_argument('patient_id', type=str, required=True,
+                            help='ID of patient. (Required)')
+        parser.add_argument('doctor_id', type=str, required=True,
+                            help='ID of the doctor')
+        parser.add_argument('informed_consent_accepted', type=bool,
+                            required=False)
+
+        appointment_info = parser.parse_args()
+
+        ack, creation_date, videocall_code = post_appointment(db,
+                                                              appointment_info,
+                                                              VIDEOCALL_CODE_SIZE)
+
+        if ack:
+            return custom_response({
+                "code": "appointment Created",
+                "Message":{
+                    "creation_date" : creation_date,
+                    "videocall_code" : videocall_code
+                }
+            }, 201)
+        else:
+            return custom_response({
+                "code": "Insertion incomplete",
+                "message": "Cita no se pudo crear contacte administrador"}, 202)
+
+    # @cross_origin(headers=["Content-Type", "Authorization"])
+    # def get(self):
+    #     return NotImplementedError
+    #
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def patch(self):
+        """ Modifies one or several fields of an appointment
+        """
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        body = request.get_json()
+
+        if 'informed_consent_accepted' not in body or 'videocall_code' not in body:
+            return custom_response({
+                "code": "missing parameter",
+                "description": "consent and video call code required"}, 400)
+
+        n_matched, modified = modify_appointment(db, videocall_code=body['videocall_code'],
+                                      consent=body['informed_consent_accepted'])
+
+        if modified:
+            return custom_response({
+                "code": "appointment modified",
+                "Message": "consentimiento actualizado"
+            }, 200)
+        else:
+            return custom_response({
+                "code": "appointment not found" if not n_matched else "videocall already consented",
+                "message": "Cita no encontrada" if not n_matched else "videollamada con consetimiento ya aprobado"},
+                404 if not n_matched else 202)
+
 
 class HealthCheck(Resource):
     def get(self):
@@ -109,4 +182,4 @@ class HealthCheck(Resource):
 # Route the URL to the resource
 api.add_resource(Diagnostic, '/diagnostic')
 api.add_resource(HealthCheck, '/health-check')
-
+api.add_resource(Appointment, '/appointment')
