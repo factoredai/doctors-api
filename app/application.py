@@ -240,7 +240,7 @@ class Doctor(Resource):
                 "message": {
                     "esp": "El JSON está mal construido",
                     "eng": "JSON"
-                }}, 400)    
+                }}, 400)
         email_regex = '(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
         schema = {
                     "first_name": {'type': 'string', 'required':True},
@@ -272,9 +272,9 @@ class Doctor(Resource):
         else:
             return custom_response({'code': 'Valores ingresados inválidos',
                                     'message':validator.errors}, 202)
-                
 
-        
+
+
 
 class HealthCheck(Resource):
     def get(self):
