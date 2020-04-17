@@ -1,5 +1,6 @@
 import os
 
+from cerberus import Validator
 from flask import Flask, make_response, jsonify, request, _request_ctx_stack
 from flask_restful import abort, Api, reqparse, Resource
 from flask_cors import cross_origin
@@ -10,6 +11,8 @@ from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
 from app.database.db_queries_appointment import (post_appointment,
                                                  modify_appointment,
                                                  get_appointment)
+from app.database.db_queries_doctors import post_doctor_id
+
 from app.helpers.auth import AuthHandler, AuthError
 
 load_dotenv()
@@ -90,7 +93,7 @@ class Diagnostic(Resource):
 
         args = request.args.to_dict()
 
-        if 'patient_id' not in args and 'doctor_id' not in args and 'report_id' not in args:
+        if 'patient_id' not in args and 'doctor_id' not in args:
             return custom_response({
                 "code": "missing parameter",
                 "message": {
@@ -100,14 +103,8 @@ class Diagnostic(Resource):
 
         patient_id = (args['patient_id'] if 'patient_id' in args else None)
         doctor_id = (args['doctor_id'] if 'doctor_id' in args else None)
-        report_id = (args['report_id'] if 'report_id' in args else None)
-        last_conduct = (args['last_conduct'] if 'last_conduct' in args else False)
 
-        patient_info = get_patient_id(db, patient_id=patient_id,
-                                      doctor_id=doctor_id,
-                                      report_id=report_id,
-                                      last_conduct=last_conduct
-                                      )
+        patient_info = get_patient_id(db, patient_id=patient_id, doctor_id=doctor_id)
 
         return custom_response({"code": "diagnostics found", "message": patient_info},
                                200) if patient_info else custom_response({
@@ -230,6 +227,54 @@ class Appointment(Resource):
                     "eng": "appointment not found" if not n_matched else "videocall with consent already approved"
                 }}, 404 if not n_matched else 202)
 
+class Doctor(Resource):
+    def get(self):
+        body =  request.get_json()
+
+    def post(self):
+        try:
+            body = request.get_json()
+        except:
+            return custom_response({
+                "code": "Bad JSON",
+                "message": {
+                    "esp": "El JSON está mal construido",
+                    "eng": "JSON"
+                }}, 400)    
+        email_regex = '(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
+        schema = {
+                    "first_name": {'type': 'string', 'required':True},
+                    "last_name": {'type': 'string','required':True},
+                    "cellphone": {'type': 'string','required':True, 'regex': '[0-9]{10}'},
+                    "email": {'type': 'string','required':True, 'regex':email_regex},
+                    "professional_card_photo": {'type': 'string','required':True},
+                    "official_id_photo": {'type': 'string','required':True}
+                }
+        validator = Validator(schema)
+
+        if validator.validate(body):
+            ack, date = post_doctor_id(db, body)
+            if ack:
+                return custom_response({
+                    "code": "Solicitud realizada",
+                    "message":{
+                        "creation_date" : date
+                    }
+                }, 201)
+            else:
+                return custom_response({
+                    "code": "Application incomplete",
+                    "message": {
+                        "esp": "La solicitud no se pudo crear contacte administrador",
+                        "eng": "Application couldn't be created contact admin"
+                    }
+                    }, 202)
+        else:
+            return custom_response({'code': 'Valores ingresados inválidos',
+                                    'message':validator.errors}, 202)
+                
+
+        
 
 class HealthCheck(Resource):
     def get(self):
@@ -245,3 +290,4 @@ class HealthCheck(Resource):
 api.add_resource(Diagnostic, '/diagnostic')
 api.add_resource(HealthCheck, '/health-check')
 api.add_resource(Appointment, '/appointment')
+api.add_resource(Doctor, '/doctor')
