@@ -9,7 +9,8 @@ from app.database.db_setup import get_connection
 from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
 from app.database.db_queries_appointment import (post_appointment,
                                                  modify_appointment,
-                                                 get_appointment)
+                                                 get_appointment,
+                                                 get_summary)
 from app.helpers.auth import AuthHandler, AuthError
 
 load_dotenv()
@@ -169,6 +170,14 @@ class Appointment(Resource):
             return custom_response(token_valid.error, token_valid.status_code)
 
         args = request.args.to_dict()
+
+        if 'summary' in args and args['summary']:
+            summary = get_summary(db)
+
+            return custom_response({
+                "code": "summary",
+                "message": summary
+            }, 200)
 
         if 'patient_id' not in args and 'doctor_id' not in args:
             return custom_response({
