@@ -2,13 +2,15 @@ import datetime as dt
 import pymongo
 
 
-def get_patient_id(db, patient_id=None, doctor_id=None):
+def get_patient_id(db, patient_id=None, doctor_id=None, report_id=None, last_conduct=False):
     """gets a patient by id"""
     query = {}
     if patient_id:
         query['patient_id'] = patient_id
     if doctor_id:
         query['doctor_id'] = doctor_id
+    if report_id:
+        query['report_id'] = report_id
 
     patient_info = db['diagnostic'].find(query, {
             'patient_id': 1,
@@ -20,6 +22,10 @@ def get_patient_id(db, patient_id=None, doctor_id=None):
             '_id': 0
         }).sort([("_diagnostic_date", pymongo.DESCENDING),
                  ("patient_id", pymongo.DESCENDING)])
+
+    if last_conduct:
+        patient_info = [patient_info[0]]
+
     return list(patient_info)
 
 def post_patient_id(patient_info, db):

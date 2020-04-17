@@ -90,7 +90,7 @@ class Diagnostic(Resource):
 
         args = request.args.to_dict()
 
-        if 'patient_id' not in args and 'doctor_id' not in args:
+        if 'patient_id' not in args and 'doctor_id' not in args and 'report_id' not in args:
             return custom_response({
                 "code": "missing parameter",
                 "message": {
@@ -100,8 +100,14 @@ class Diagnostic(Resource):
 
         patient_id = (args['patient_id'] if 'patient_id' in args else None)
         doctor_id = (args['doctor_id'] if 'doctor_id' in args else None)
+        report_id = (args['report_id'] if 'report_id' in args else None)
+        last_conduct = (args['last_conduct'] if 'last_conduct' in args else False)
 
-        patient_info = get_patient_id(db, patient_id=patient_id, doctor_id=doctor_id)
+        patient_info = get_patient_id(db, patient_id=patient_id,
+                                      doctor_id=doctor_id,
+                                      report_id=report_id,
+                                      last_conduct=last_conduct
+                                      )
 
         return custom_response({"code": "diagnostics found", "message": patient_info},
                                200) if patient_info else custom_response({
