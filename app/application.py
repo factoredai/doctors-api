@@ -4,7 +4,7 @@ import sys
 import traceback
 from flask import Flask, make_response, jsonify, request, _request_ctx_stack
 from flask_restful import abort, Api, reqparse, Resource
-from flask_cors import cross_origin
+from flask_cors import cross_origin, CORS
 from dotenv import load_dotenv
 from app.database.db_setup import get_connection
 from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
@@ -18,6 +18,7 @@ load_dotenv()
 
 app = Flask(__name__)
 api = Api(app)
+CORS(app=app)
 
 # Environment Variables
 MONGO_URI = os.getenv('MONGO_URI')
