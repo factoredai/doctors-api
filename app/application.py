@@ -1,10 +1,11 @@
 import os
-
+import json
+import sys
+import traceback
 from flask import Flask, make_response, jsonify, request, _request_ctx_stack
 from flask_restful import abort, Api, reqparse, Resource
 from flask_cors import cross_origin
 from dotenv import load_dotenv
-
 from app.database.db_setup import get_connection
 from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
 from app.database.db_queries_appointment import (post_appointment,
@@ -244,8 +245,13 @@ class HealthCheck(Resource):
     def get(self):
         try:
             info = db_client.server_info()
-            return "Db OK"
+            test_message = f"AUTH0_DOMAIN: {os.getenv('AUTH0_DOMAIN')}"
+            print(test_message)
+            return make_response(jsonify({"test_message": test_message}))
         except Exception:
+            print('Error in healthcheck')
+            print(traceback.format_exc())
+            print("Error: %s", sys.exc_info())
             return "DB error"
 
 

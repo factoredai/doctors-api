@@ -1,6 +1,6 @@
 branch-defaults:
   master:
-    environment: covid-doctors-api-prod
+    environment: covid-doctors-api-dev
     group_suffix: null
 global:
   application_name: covid-doctors-api
