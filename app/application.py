@@ -245,9 +245,10 @@ class HealthCheck(Resource):
     def get(self):
         try:
             info = db_client.server_info()
+            auth = request.headers.get("Authorization", None)
             test_message = f"AUTH0_DOMAIN: {os.getenv('AUTH0_DOMAIN')}"
             print(test_message)
-            return make_response(jsonify({"test_message": test_message}))
+            return make_response(jsonify({"test_message": test_message, "auth_header": auth}))
         except Exception:
             print('Error in healthcheck')
             print(traceback.format_exc())
