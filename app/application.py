@@ -207,10 +207,6 @@ class Appointment(Resource):
     def patch(self):
         """ Modifies one or several fields of an appointment
         """
-        parser = reqparse.RequestParser()
-        token_valid = auth_handler.get_payload(request)
-        if isinstance(token_valid, AuthError):
-            return custom_response(token_valid.error, token_valid.status_code)
 
         body = request.get_json()
 
