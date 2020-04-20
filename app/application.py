@@ -1,8 +1,10 @@
 import os
-
+import json
+import sys
+import traceback
 from flask import Flask, make_response, jsonify, request, _request_ctx_stack
 from flask_restful import abort, Api, reqparse, Resource
-from flask_cors import cross_origin
+from flask_cors import cross_origin, CORS
 from dotenv import load_dotenv
 from cerberus import Validator
 
@@ -19,6 +21,7 @@ load_dotenv()
 
 app = Flask(__name__)
 api = Api(app)
+CORS(app=app)
 
 # Environment Variables
 MONGO_URI = os.getenv('MONGO_URI')
@@ -349,8 +352,11 @@ class HealthCheck(Resource):
     def get(self):
         try:
             info = db_client.server_info()
-            return "Db OK"
+            return make_response(jsonify({"message": 'DB_OK'}))
         except Exception:
+            print('Error in healthcheck')
+            print(traceback.format_exc())
+            print("Error: %s", sys.exc_info())
             return "DB error"
 
 

@@ -1,10 +1,10 @@
 branch-defaults:
   master:
-    environment: covid-doctors-api-prod
+    environment: covid-doctors-api-dev
+    group_suffix: null
 global:
   application_name: covid-doctors-api
   branch: null
-  default_ec2_keyname: covid-juanfe
   default_platform: Python 3.6
   default_region: us-west-2
   include_git_submodules: true
