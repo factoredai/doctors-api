@@ -6,12 +6,15 @@ from flask import Flask, make_response, jsonify, request, _request_ctx_stack
 from flask_restful import abort, Api, reqparse, Resource
 from flask_cors import cross_origin, CORS
 from dotenv import load_dotenv
+from cerberus import Validator
+
 from app.database.db_setup import get_connection
 from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
 from app.database.db_queries_appointment import (post_appointment,
                                                  modify_appointment,
                                                  get_appointment,
                                                  get_summary)
+from app.database.db_queries_report import create_replace_report, get_report_id
 from app.helpers.auth import AuthHandler, AuthError
 
 load_dotenv()
@@ -242,6 +245,109 @@ class Appointment(Resource):
                 }}, 404 if not n_matched else 202)
 
 
+class Report(Resource):
+
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def put(self):
+        """Insert a report with the status of the report so far, if the
+           report doesn't exists create it, if it does replace it.
+        """
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        try:
+            body = request.get_json()
+        except:
+            return custom_response({
+                "code": "Bad JSON",
+                "message": {
+                    "esp": "El JSON está mal construido",
+                    "eng": "JSON"
+                }}, 400)
+
+        schema = {
+                    'report_id': {'type': 'string', 'required':True},
+                    'statuses': {
+                        'type' : 'list',
+                        'required' : True,
+                        'schema': {
+                            'type' : 'dict',
+                            'schema':{
+                                'name' : {'type': 'string', 'required': True},
+                                'active' : {'type': 'boolean', 'required': True}
+                            }
+                        }
+                    }
+                }
+        validator = Validator(schema)
+
+        if not validator.validate(body):
+            return custom_response({'code': 'invalid values',
+                                    'message':validator.errors}, 400)
+
+        result = create_replace_report(db, body)
+
+        if result['operation'] == 'update':
+
+            if result['modified']:
+                return custom_response({
+                    "code": "appointment modified",
+                    "message": {
+                        "esp": "consentimiento actualizado",
+                        "eng": "consent updated"
+                    }
+                }, 200)
+            return custom_response({
+                "code": "report not found" if not result['n_matched'] else "the report status didn't change",
+                "message": {
+                    "esp": "reporte no encontrado" if not result['n_matched'] else "estado de reporte no cambio",
+                    "eng": "report not found" if not result['n_matched'] else "the report status didn't change"
+                }}, 404 if not result['n_matched'] else 202)
+
+        if not result['inserted']:
+            return custom_response({
+                "code": "insertion incompplete",
+                "message": {
+                    "esp": "reporte no se puedo ingresar contacte administrador",
+                    "eng": "report couldn't be created, contact admin"
+                }}, 202)
+        return custom_response({
+            "code": "new report",
+            "message": {
+                "_report_creation_date": result['_report_creation_date']
+            }
+        }, 201)
+
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def get(self):
+        """Get report by id"""
+
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        args = request.args.to_dict()
+
+        if 'report_id' not in args:
+            return custom_response({
+                "code": "missing parameter",
+                "message": {
+                    "eng": "report id required",
+                    "esp": "id del reporte requerido"
+                }}, 400)
+
+        report_info = get_report_id(db, report_id=args['report_id'])
+
+        return custom_response({"code": "report found", "message": report_info},
+                               200) if report_info else custom_response({
+                               "code": "report non existent",
+                               "message": {
+                                    "eng": "report doesn't exist",
+                                    "esp": "reporte no existe"
+                               }}, 404)
+
 class HealthCheck(Resource):
     def get(self):
         try:
@@ -259,3 +365,4 @@ class HealthCheck(Resource):
 api.add_resource(Diagnostic, '/diagnostic')
 api.add_resource(HealthCheck, '/health-check')
 api.add_resource(Appointment, '/appointment')
+api.add_resource(Report, '/report')
