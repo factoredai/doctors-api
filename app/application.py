@@ -11,7 +11,7 @@ from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
 from app.database.db_queries_appointment import (post_appointment,
                                                  modify_appointment,
                                                  get_appointment)
-from app.database.db_queries_doctors import post_doctor_id
+from app.database.db_queries_doctors import post_doctor_id, get_doctor_application()
 
 from app.helpers.auth import AuthHandler, AuthError
 
@@ -228,8 +228,35 @@ class Appointment(Resource):
                 }}, 404 if not n_matched else 202)
 
 class Doctor(Resource):
+    @cross_origin(headers=["Content-Type", "Authorization"])
     def get(self):
-        body =  request.get_json()
+        try:
+            body = request.get_json()
+        except:
+            return custom_response({
+                "code": "Bad JSON",
+                "message": {
+                    "esp": "El JSON está mal construido",
+                    "eng": "JSON"
+                }}, 400)
+        if 'email' not in body:
+            return custom_response({
+                "code": "missing parameter",
+                "message": {
+                    "esp": "Para consultar una aplicación debe ingresar el email del doctor.",
+                    "eng": "To get an application you must submit doctor's email."
+                }}, 400)
+        print(body)
+        doctor_application = get_doctor_application(db, body['email'])
+        print(doctor_application, 'test')
+
+        return (custom_response({"code": "Application found", "message": doctor_application},
+                               200) if not doctor_application else custom_response({
+                               "code": "Application is non existent",
+                               "message": {
+                                    "esp": "Aplicación no encontradas",
+                                    "eng": "Application not found"
+                               }}, 404))
 
     def post(self):
         try:
