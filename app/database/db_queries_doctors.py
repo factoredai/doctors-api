@@ -27,5 +27,6 @@ def get_doctor_application(db, doctor_email):
             '_request_date':1,
             '_id':0
         }).sort([("_request_date", pymongo.DESCENDING)])
+    print(doctor_application)
     return list(doctor_application)
 
