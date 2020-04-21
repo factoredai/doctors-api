@@ -19,7 +19,7 @@ from app.database.db_queries_appointment import (post_appointment,
 from app.database.db_queries_report import create_replace_report, get_report_id
 from app.database.db_queries_doctors import post_doctor_id
 from app.helpers.auth import AuthHandler, AuthError
-from app.database.db_queries_doctors import post_doctor_id, get_doctor_application
+from app.database.db_queries_doctors import post_doctor_id, get_doctor_application, modify_doctor
 
 load_dotenv()
 
@@ -242,9 +242,31 @@ class Appointment(Resource):
                     "eng": "appointment not found" if not n_matched else "videocall with consent already approved"
                 }}, 404 if not n_matched else 202)
 
+
 class Doctor(Resource):
     @cross_origin(headers=["Content-Type", "Authorization"])
     def get(self):
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        doctor_application = get_doctor_application(db)
+
+        return (custom_response({"code": "Application found", "message": doctor_application},
+                               200) if doctor_application else custom_response({
+                               "code": "Application is non existent",
+                               "message": {
+                                    "esp": "Aplicación no encontradas",
+                                    "eng": "Application not found"
+                               }}, 404))
+
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def patch(self):
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
         try:
             body = request.get_json()
         except:
@@ -252,25 +274,40 @@ class Doctor(Resource):
                 "code": "Bad JSON",
                 "message": {
                     "esp": "El JSON está mal construido",
-                    "eng": "JSON"
+                    "eng": "JSON with invalid syntax"
                 }}, 400)
-        if 'email' not in body:
+
+        email_regex = '(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
+
+        schema = {
+                    'cellphone': {'type': 'string','required':True, 'regex': '[0-9]{10}'},
+                    'email': {'type': 'string','required':True, 'regex': email_regex},
+                    'registered' : {'type' : 'boolean', 'required': True}
+                }
+        validator = Validator(schema)
+
+        if not validator.validate(body):
+            return custom_response({'code': 'invalid json structure',
+                                    'message':validator.errors}, 400)
+
+        result = modify_doctor(db, cellphone=body['cellphone'],
+                               email=body['email'], registered=body['registered'])
+
+        if result['n_modified']:
             return custom_response({
-                "code": "missing parameter",
+                "code": "doctor registered",
                 "message": {
-                    "esp": "Para consultar una aplicación debe ingresar el email del doctor.",
-                    "eng": "To get an application you must submit doctor's email."
-                }}, 400)
+                    "esp": "doctor se registró",
+                    "eng": "doctor registered"
+                }
+            }, 200)
 
-        doctor_application = get_doctor_application(db, body['email'])
-
-        return (custom_response({"code": "Application found", "message": doctor_application},
-                               200) if not doctor_application else custom_response({
-                               "code": "Application is non existent",
-                               "message": {
-                                    "esp": "Aplicación no encontradas",
-                                    "eng": "Application not found"
-                               }}, 404))
+        return custom_response({
+            "code": "doctor not found" if not result['n_matched'] else "the doctor status didn't change",
+            "message": {
+                "esp": "doctor no encontrado" if not result['n_matched'] else "estado de doctor no cambio",
+                "eng": "doctor not found" if not result['n_matched'] else "the doctor status didn't change"
+            }}, 404 if not result['n_matched'] else 202)
 
     def post(self):
         try:
@@ -280,8 +317,9 @@ class Doctor(Resource):
                 "code": "Bad JSON",
                 "message": {
                     "esp": "El JSON está mal construido",
-                    "eng": "JSON"
+                    "eng": "JSON with invalid syntax"
                 }}, 400)
+
         email_regex = '(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
         schema = {
                     "first_name": {'type': 'string', 'required':True},
@@ -293,28 +331,26 @@ class Doctor(Resource):
                 }
         validator = Validator(schema)
 
-        if validator.validate(body):
-            ack, date = post_doctor_id(db, body)
-            if ack:
-                return custom_response({
-                    "code": "Solicitud realizada",
-                    "message":{
-                        "creation_date" : date
-                    }
-                }, 201)
-            else:
-                return custom_response({
-                    "code": "Application incomplete",
-                    "message": {
-                        "esp": "La solicitud no se pudo crear contacte administrador",
-                        "eng": "Application couldn't be created contact admin"
-                    }
-                    }, 202)
-        else:
+        if not validator.validate(body):
             return custom_response({'code': 'Valores ingresados inválidos',
-                                    'message':validator.errors}, 202)
+                                    'message':validator.errors}, 400)
 
-
+        result = post_doctor_id(db, body)
+        if result['inserted']:
+            return custom_response({
+                "code": "Solicitud realizada",
+                "message":{
+                    "creation_date" : result['_request_date']
+                }
+            }, 201)
+        else:
+            return custom_response({
+                "code": "Application incomplete",
+                "message": {
+                    "esp": "La solicitud no se pudo crear contacte administrador",
+                    "eng": "Application couldn't be created contact admin"
+                }
+                }, 202)
 
 
 class Report(Resource):
