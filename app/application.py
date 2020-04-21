@@ -2,11 +2,13 @@ import os
 import json
 import sys
 import traceback
+
 from flask import Flask, make_response, jsonify, request, _request_ctx_stack
 from flask_restful import abort, Api, reqparse, Resource
 from flask_cors import cross_origin, CORS
 from dotenv import load_dotenv
 from cerberus import Validator
+
 
 from app.database.db_setup import get_connection
 from app.database.db_queries_diagnostic import post_patient_id, get_patient_id
@@ -15,7 +17,9 @@ from app.database.db_queries_appointment import (post_appointment,
                                                  get_appointment,
                                                  get_summary)
 from app.database.db_queries_report import create_replace_report, get_report_id
+from app.database.db_queries_doctors import post_doctor_id
 from app.helpers.auth import AuthHandler, AuthError
+from app.database.db_queries_doctors import post_doctor_id, get_doctor_application, modify_doctor
 
 load_dotenv()
 
@@ -111,7 +115,7 @@ class Diagnostic(Resource):
 
         args = request.args.to_dict()
 
-        if 'patient_id' not in args and 'doctor_id' not in args and 'report_id' not in args:
+        if 'patient_id' not in args and 'doctor_id' not in args:
             return custom_response({
                 "code": "missing parameter",
                 "message": {
@@ -121,14 +125,8 @@ class Diagnostic(Resource):
 
         patient_id = (args['patient_id'] if 'patient_id' in args else None)
         doctor_id = (args['doctor_id'] if 'doctor_id' in args else None)
-        report_id = (args['report_id'] if 'report_id' in args else None)
-        last_conduct = (args['last_conduct'] if 'last_conduct' in args else False)
 
-        patient_info = get_patient_id(db, patient_id=patient_id,
-                                      doctor_id=doctor_id,
-                                      report_id=report_id,
-                                      last_conduct=last_conduct
-                                      )
+        patient_info = get_patient_id(db, patient_id=patient_id, doctor_id=doctor_id)
 
         return custom_response({"code": "diagnostics found", "message": patient_info},
                                200) if patient_info else custom_response({
@@ -260,6 +258,116 @@ class Appointment(Resource):
                 }}, 404 if not n_matched else 202)
 
 
+class Doctor(Resource):
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def get(self):
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        doctor_application = get_doctor_application(db)
+
+        return (custom_response({"code": "Application found", "message": doctor_application},
+                               200) if doctor_application else custom_response({
+                               "code": "Application is non existent",
+                               "message": {
+                                    "esp": "Aplicación no encontradas",
+                                    "eng": "Application not found"
+                               }}, 404))
+
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def patch(self):
+        parser = reqparse.RequestParser()
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+        try:
+            body = request.get_json()
+        except:
+            return custom_response({
+                "code": "Bad JSON",
+                "message": {
+                    "esp": "El JSON está mal construido",
+                    "eng": "JSON with invalid syntax"
+                }}, 400)
+
+        email_regex = '(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
+
+        schema = {
+                    'cellphone': {'type': 'string','required':True, 'regex': '[0-9]{10}'},
+                    'email': {'type': 'string','required':True, 'regex': email_regex},
+                    'registered' : {'type' : 'boolean', 'required': True}
+                }
+        validator = Validator(schema)
+
+        if not validator.validate(body):
+            return custom_response({'code': 'invalid json structure',
+                                    'message':validator.errors}, 400)
+
+        result = modify_doctor(db, cellphone=body['cellphone'],
+                               email=body['email'], registered=body['registered'])
+
+        if result['n_modified']:
+            return custom_response({
+                "code": "doctor registered",
+                "message": {
+                    "esp": "doctor se registró",
+                    "eng": "doctor registered"
+                }
+            }, 200)
+
+        return custom_response({
+            "code": "doctor not found" if not result['n_matched'] else "the doctor status didn't change",
+            "message": {
+                "esp": "doctor no encontrado" if not result['n_matched'] else "estado de doctor no cambio",
+                "eng": "doctor not found" if not result['n_matched'] else "the doctor status didn't change"
+            }}, 404 if not result['n_matched'] else 202)
+
+    def post(self):
+        try:
+            body = request.get_json()
+        except:
+            return custom_response({
+                "code": "Bad JSON",
+                "message": {
+                    "esp": "El JSON está mal construido",
+                    "eng": "JSON with invalid syntax"
+                }}, 400)
+
+        email_regex = '(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
+        schema = {
+                    "first_name": {'type': 'string', 'required':True},
+                    "last_name": {'type': 'string','required':True},
+                    "cellphone": {'type': 'string','required':True, 'regex': '[0-9]{10}'},
+                    "email": {'type': 'string','required':True, 'regex':email_regex},
+                    "professional_card_photo": {'type': 'string','required':True},
+                    "official_id_photo": {'type': 'string','required':True}
+                }
+        validator = Validator(schema)
+
+        if not validator.validate(body):
+            return custom_response({'code': 'Valores ingresados inválidos',
+                                    'message':validator.errors}, 400)
+
+        result = post_doctor_id(db, body)
+        if result['inserted']:
+            return custom_response({
+                "code": "Solicitud realizada",
+                "message":{
+                    "creation_date" : result['_request_date']
+                }
+            }, 201)
+        else:
+            return custom_response({
+                "code": "Application incomplete",
+                "message": {
+                    "esp": "La solicitud no se pudo crear contacte administrador",
+                    "eng": "Application couldn't be created contact admin"
+                }
+                }, 202)
+
+
 class Report(Resource):
 
     @cross_origin(headers=["Content-Type", "Authorization"])
@@ -380,4 +488,5 @@ class HealthCheck(Resource):
 api.add_resource(Diagnostic, '/diagnostic')
 api.add_resource(HealthCheck, '/health-check')
 api.add_resource(Appointment, '/appointment')
+api.add_resource(Doctor, '/doctor')
 api.add_resource(Report, '/report')
