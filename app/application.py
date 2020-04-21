@@ -45,7 +45,7 @@ def custom_response(message, status_code):
 class Diagnostic(Resource):
 
     @cross_origin(headers=["Content-Type", "Authorization"])
-    def post(self):
+    def put(self):
         """ Receives a json containing _id, and a string
             saves in a database.
             if id exists in database append text.
@@ -65,23 +65,38 @@ class Diagnostic(Resource):
 
         patient_info = parser.parse_args()
 
-        response = post_patient_id(patient_info, db)
+        result = post_patient_id(patient_info, db)
 
-        if response:
+        if result['operation'] == 'update':
+
+            if result['modified']:
+                return custom_response({
+                    "code": "diagnostic modified",
+                    "message": {
+                        "esp": "diagnostico actualizado",
+                        "eng": "diagnostic updated"
+                    }
+                }, 200)
             return custom_response({
-                "code": "diagnostic created",
+                "code": "diagnostic not found" if not result['n_matched'] else "the diagnostic didn't change",
                 "message": {
-                    "esp": "diagnostico creado",
-                    "eng": "diagnostic created"
-                }
-            }, 201)
-        else:
+                    "esp": "diagnostico no encontrado" if not result['n_matched'] else "estado de diagnostico no cambio",
+                    "eng": "diagnostico not found" if not result['n_matched'] else "the diagnostic didn't change"
+                }}, 404 if not result['n_matched'] else 202)
+
+        if not result['inserted']:
             return custom_response({
                 "code": "insertion incompplete",
                 "message": {
                     "esp": "diagnostico no se puedo ingresar contacte administrador",
-                    "eng": "diagnostic couldn't be created, contact admin"
+                    "eng": "diagnostico couldn't be created, contact admin"
                 }}, 202)
+        return custom_response({
+            "code": "new diagnositc",
+            "message": {
+                "_diagnostic_date": result['_diagnostic_date']
+            }
+        }, 201)
 
     @cross_origin(headers=["Content-Type", "Authorization"])
     def get(self):
@@ -292,10 +307,10 @@ class Report(Resource):
 
             if result['modified']:
                 return custom_response({
-                    "code": "appointment modified",
+                    "code": "report modified",
                     "message": {
-                        "esp": "consentimiento actualizado",
-                        "eng": "consent updated"
+                        "esp": "reporte actualizado",
+                        "eng": "report updated"
                     }
                 }, 200)
             return custom_response({
