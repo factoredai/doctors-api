@@ -32,7 +32,37 @@ def post_patient_id(patient_info, db):
     """creates a new patient  with patient info or updates
        if the patient already exists.
     """
+
+    if db['diagnostic'].find_one({'report_id': patient_info[
+            'report_id'], 'patient_id': patient_info[
+            'patient_id'], 'doctor_id': patient_info['doctor_id']}):
+        result = db['diagnostic'].update(
+            {
+                'report_id': patient_info['report_id'],
+                'patient_id': patient_info['patient_id'],
+                'doctor_id': patient_info['doctor_id']
+            },
+            {
+                '$set' : {
+                    'conduct' : patient_info['conduct'],
+                    'diagnose' : patient_info['diagnose'],
+                    '_last_update':  dt.datetime.utcnow()
+                }
+            }
+        )
+
+        return {
+            'operation': 'update',
+            'n_matched': result['n'],
+            'modified': result['nModified']
+        }
+
     patient_info['_diagnostic_date'] = dt.datetime.utcnow()
+    patient_info['_last_update'] = patient_info['_diagnostic_date']
     inserted = db['diagnostic'].insert_one(patient_info)
 
-    return inserted.acknowledged, patient_info['_diagnostic_date']
+    return {
+        'operation': 'insert',
+        'inserted': inserted.acknowledged,
+        '_diagnostic_date': patient_info['_diagnostic_date']
+    }
