@@ -24,6 +24,7 @@ from app.database.db_queries_doctors import post_doctor_id, get_doctor_applicati
 load_dotenv()
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 api = Api(app)
 CORS(app=app)
 
