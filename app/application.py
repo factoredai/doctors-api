@@ -116,7 +116,7 @@ class Diagnostic(Resource):
 
         args = request.args.to_dict()
 
-        if 'patient_id' not in args and 'doctor_id' not in args:
+        if 'patient_id' not in args and 'doctor_id' not in args and 'report_id' not in args:
             return custom_response({
                 "code": "missing parameter",
                 "message": {
