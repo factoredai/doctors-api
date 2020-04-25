@@ -190,9 +190,6 @@ class Appointment(Resource):
         """ Get appointment information by doctor_id, patient_id or both.
         """
         parser = reqparse.RequestParser()
-        token_valid = auth_handler.get_payload(request)
-        if isinstance(token_valid, AuthError):
-            return custom_response(token_valid.error, token_valid.status_code)
 
         args = request.args.to_dict()
 
@@ -203,6 +200,10 @@ class Appointment(Resource):
                 "code": "summary",
                 "message": summary
             }, 200)
+
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
 
         if 'patient_id' not in args and 'doctor_id' not in args:
             return custom_response({
