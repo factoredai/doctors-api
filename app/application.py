@@ -195,12 +195,7 @@ class Appointment(Resource):
 
         if 'summary' in args and args['summary']:
             summary = get_summary(db)
-
-            return custom_response({
-                "code": "summary",
-                "message": {
-                    "accepted_consent_videocalls": summary
-                }, 200)
+            return custom_response({"code": "summary", "message": {"accepted_consent_videocalls": summary}}, 200)
 
         token_valid = auth_handler.get_payload(request)
         if isinstance(token_valid, AuthError):
