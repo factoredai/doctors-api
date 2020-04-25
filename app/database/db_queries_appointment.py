@@ -64,14 +64,5 @@ def get_appointment(db, patient_id=None, doctor_id=None):
 
 def get_summary(db):
     """get the amount of videcalls with consent accepted."""
-    summary = db['appointment'].aggregate([
-        {
-            '$match': {
-                'informed_consent_accepted': {'$eq': True}
-            }
-        },
-        {
-            '$count': 'accepted_consent_videocalls'
-        }
-    ])
-    return list(summary)[0]
+    summary = db['appointment'].count({"informed_consent_accepted": True})
+    return summary
