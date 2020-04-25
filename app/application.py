@@ -198,8 +198,9 @@ class Appointment(Resource):
 
             return custom_response({
                 "code": "summary",
-                "message": summary
-            }, 200)
+                "message": {
+                    "accepted_consent_videocalls": summary
+                }, 200)
 
         token_valid = auth_handler.get_payload(request)
         if isinstance(token_valid, AuthError):
