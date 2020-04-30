@@ -24,7 +24,7 @@ def get_patient_id(db, patient_id=None, doctor_id=None, report_id=None, last_con
                  ("patient_id", pymongo.DESCENDING)])
 
     if last_conduct:
-        patient_info = [patient_info[0]]
+        patient_info = [patient_info[0]] if patient_info.count() else []
 
     return list(patient_info)
 
