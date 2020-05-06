@@ -38,7 +38,6 @@ nosetests.xml
 # Virtual environment
 venv
 # Environment files
-.env
 .idea/
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
