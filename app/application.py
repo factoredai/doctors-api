@@ -67,6 +67,8 @@ class Diagnostic(Resource):
         parser.add_argument('doctor_id', type=str, required=True, help='ID of the doctor')
         parser.add_argument('report_id', type=str, required=True, help='ID of the report')
         parser.add_argument('conduct', type=str, required=True, help='Recommendation for the patient required')
+        parser.add_argument('risk', type=str, required=True, help='Risk of the patient required',
+                            choices=('low', 'medium', 'high'))
 
         patient_info = parser.parse_args()
 
