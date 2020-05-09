@@ -19,7 +19,7 @@ from app.database.db_queries_appointment import (post_appointment,
 from app.database.db_queries_report import create_replace_report, get_report_id
 from app.helpers.auth import AuthHandler, AuthError
 from app.database.db_queries_doctors import post_doctor_id, get_doctor_application, modify_doctor
-from app.database.db_queries_feedback import post_feedback
+from app.database.db_queries_feedback import post_feedback, get_feedback
 
 load_dotenv()
 
@@ -509,6 +509,22 @@ class Feedback(Resource):
                     "eng": "feedback couldn't be created contact admin"
                 }
                 }, 202)
+
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def get(self):
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        feedback_info = get_feedback(db)
+
+        return custom_response({"code": "feedback found", "message": feedback_info},
+                               200) if feedback_info else custom_response({
+                               "code": "feedback non existent",
+                               "message": {
+                                    "eng": "feedback doesn't exist",
+                                    "esp": "sugerencias no existen"
+                               }}, 404)
 
 
 class HealthCheck(Resource):
