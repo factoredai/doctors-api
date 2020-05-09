@@ -17,9 +17,9 @@ from app.database.db_queries_appointment import (post_appointment,
                                                  get_appointment,
                                                  get_summary)
 from app.database.db_queries_report import create_replace_report, get_report_id
-from app.database.db_queries_doctors import post_doctor_id
 from app.helpers.auth import AuthHandler, AuthError
 from app.database.db_queries_doctors import post_doctor_id, get_doctor_application, modify_doctor
+from app.database.db_queries_feedback import post_feedback, get_feedback
 
 load_dotenv()
 
@@ -471,6 +471,62 @@ class Report(Resource):
                                     "esp": "reporte no existe"
                                }}, 404)
 
+class Feedback(Resource):
+    def post(self):
+        try:
+            body = request.get_json()
+        except:
+            return custom_response({
+                "code": "Bad JSON",
+                "message": {
+                    "esp": "El JSON está mal construido",
+                    "eng": "JSON with invalid syntax"
+                }}, 400)
+
+        schema = {
+            "feedback": {'type': 'string', 'required':True}
+        }
+        validator = Validator(schema)
+
+        if not validator.validate(body):
+            return custom_response({'code': 'Valores ingresados inválidos',
+                                    'message':validator.errors}, 400)
+
+        result = post_feedback(db, body)
+
+        if result['inserted']:
+            return custom_response({
+                "code": "feedback inserted",
+                "message":{
+                    "creation_date" : result['_feedback_date']
+                }
+            }, 201)
+        else:
+            return custom_response({
+                "code": "feedback incomplete",
+                "message": {
+                    "esp": "sugerencia no se pudo crear contacte administrador",
+                    "eng": "feedback couldn't be created contact admin"
+                }
+                }, 202)
+
+    @cross_origin(headers=["Content-Type", "Authorization"])
+    def get(self):
+        token_valid = auth_handler.get_payload(request)
+        if isinstance(token_valid, AuthError):
+            return custom_response(token_valid.error, token_valid.status_code)
+
+        feedback_info = get_feedback(db)
+
+        return custom_response({"code": "feedback found", "message": feedback_info},
+                               200) if feedback_info else custom_response({
+                               "code": "feedback non existent",
+                               "message": {
+                                    "eng": "feedback doesn't exist",
+                                    "esp": "sugerencias no existen"
+                               }}, 404)
+
+
 class HealthCheck(Resource):
     def get(self):
         try:
@@ -490,3 +546,4 @@ api.add_resource(HealthCheck, '/health-check')
 api.add_resource(Appointment, '/appointment')
 api.add_resource(Doctor, '/doctor')
 api.add_resource(Report, '/report')
+api.add_resource(Feedback, '/feedback')
