@@ -17,6 +17,7 @@ def get_patient_id(db, patient_id=None, doctor_id=None, report_id=None, last_con
             'doctor_id': 1 ,
             'diagnose': 1,
             'report_id': 1,
+            'risk': 1,
             '_diagnostic_date': 1,
             'conduct': 1,
             '_id': 0
@@ -46,6 +47,7 @@ def post_patient_id(patient_info, db):
                 '$set' : {
                     'conduct' : patient_info['conduct'],
                     'diagnose' : patient_info['diagnose'],
+                    'risk': patient_info['risk'],
                     '_last_update':  dt.datetime.utcnow()
                 }
             }
